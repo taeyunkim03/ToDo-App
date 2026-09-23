@@ -332,6 +332,54 @@ svg { display: block; }
 .is-chosen { background: var(--card); box-shadow: 0 6px 20px rgba(29, 29, 31, 0.14); }
 .is-ghost-row { opacity: 0.35; }
 
+/* ---------- Someday ---------- */
+
+.stack { display: flex; flex-direction: column; }
+
+.someday { padding: 6px 18px 48px 20px; }
+.someday-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.someday-title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.someday-count { font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.someday-hint { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.someday-list { list-style: none; margin: 10px 0 0; padding: 0; min-height: 6px; }
+.someday .task { background: var(--bg); }
+.someday-add {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 2px;
+  padding: 0 0 0 11px;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+}
+.someday-add svg { width: 14px; height: 14px; }
+
+/* The quick add category chip. The button gives the pill a 44 px hit area. */
+.someday-chip {
+  max-width: 45%;
+  min-height: 44px;
+  margin-right: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.someday-chip .chip { max-width: 100%; }
+
 .empty { padding: 24px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; color: var(--muted); }
 .empty p { margin: 0; }
 
@@ -723,7 +771,7 @@ input[type="date"] {
   .calendar {
     position: sticky;
     top: calc(12px + env(safe-area-inset-top, 0px));
-    width: clamp(320px, 48%, 560px);
+    width: clamp(340px, 50%, 560px);
     flex-shrink: 0;
     margin: 0;
     padding: 12px;
@@ -733,9 +781,9 @@ input[type="date"] {
   .cell { height: 64px; padding-top: 8px; gap: 6px; }
   .cell .num { width: 36px; height: 36px; font-size: 16px; }
 
+  .stack { flex: 1; min-width: 0; gap: 20px; }
   .day {
-    flex: 1;
-    min-width: 0;
+    flex: none;
     padding: 24px 24px 28px;
     background: var(--card);
     border-radius: 26px;
@@ -743,6 +791,14 @@ input[type="date"] {
   }
   .day-title { font-size: 25px; }
   .task { background: var(--card); }
+
+  .someday {
+    padding: 22px 24px 24px;
+    background: var(--card);
+    border-radius: 26px;
+    box-shadow: var(--shadow);
+  }
+  .someday .task { background: var(--card); }
 
   .cat-body {
     display: grid;
@@ -752,6 +808,10 @@ input[type="date"] {
   }
 
   dialog { margin: auto; border-radius: 24px; max-height: calc(100dvh - 48px); }
+}
+
+@media (min-width: 700px) and (max-width: 1023px) {
+  .day-title { font-size: 21px; }
 }
 
 @media (min-width: 1024px) {
@@ -767,6 +827,15 @@ input[type="date"] {
   .day { padding: 28px 32px; }
   .day-title { font-size: 28px; }
   .day-summary, .day-holiday { font-size: 14px; }
+  .someday { padding: 26px 32px 28px; }
+  .someday-title { font-size: 22px; }
+}
+
+/* A longer calendar on the Mac only, so the two columns end at about the same height.
+   Touch iPads don't match this, so their calendar keeps its size. */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .cell { height: 104px; padding-top: 14px; gap: 10px; }
+  .cell .num { width: 40px; height: 40px; font-size: 18px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

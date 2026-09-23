@@ -95,13 +95,28 @@ create table if not exists public.settings (
   deleted     boolean not null default false
 );
 
+-- Tasks with no date. They show every day from added_on until done_on.
+create table if not exists public.someday (
+  id          uuid primary key,
+  user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  category_id uuid not null,
+  title       text not null default '',
+  note        text not null default '',
+  added_on    date not null,
+  done_on     date,
+  sort_order  double precision not null default 0,
+  updated_at  timestamptz not null default now(),
+  synced_at   timestamptz not null default now(),
+  deleted     boolean not null default false
+);
+
 -- 3. Triggers and indexes
 
 do $$
 declare
   t text;
 begin
-  foreach t in array array['categories', 'tasks', 'routines', 'occurrences', 'settings'] loop
+  foreach t in array array['categories', 'tasks', 'routines', 'occurrences', 'settings', 'someday'] loop
     execute format('drop trigger if exists todo_sync_stamp on public.%I', t);
     execute format(
       'create trigger todo_sync_stamp before insert or update on public.%I
@@ -117,7 +132,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['categories', 'tasks', 'routines', 'occurrences', 'settings'] loop
+  foreach t in array array['categories', 'tasks', 'routines', 'occurrences', 'settings', 'someday'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists "Own rows only" on public.%I', t);
     execute format(

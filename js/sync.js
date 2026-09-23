@@ -16,6 +16,10 @@ const FIELDS = {
     id: 'id', categoryId: 'category_id', title: 'title', note: 'note', date: 'date', done: 'done',
     sortOrder: 'sort_order', updatedAt: 'updated_at', deleted: 'deleted'
   },
+  someday: {
+    id: 'id', categoryId: 'category_id', title: 'title', note: 'note', addedOn: 'added_on',
+    doneOn: 'done_on', sortOrder: 'sort_order', updatedAt: 'updated_at', deleted: 'deleted'
+  },
   occurrences: {
     id: 'id', routineId: 'routine_id', date: 'date', done: 'done', skipped: 'skipped', moveTo: 'move_to',
     title: 'title', note: 'note', categoryId: 'category_id', sortOrder: 'sort_order', updatedAt: 'updated_at', deleted: 'deleted'
@@ -79,29 +83,41 @@ function isNetworkError(err) {
   return !navigator.onLine || /fetch|network|load failed|timed out|offline/i.test(text);
 }
 
+// A failing table doesn't stop the others. Its changes stay in the outbox,
+// and the first error is thrown at the end so the status shows Sync issue.
 async function push() {
   const changes = store.pendingChanges();
   if (!changes.length) return;
+  let firstError = null;
   for (const table of store.TABLES) {
     const mine = changes.filter((c) => c.table === table);
     for (let i = 0; i < mine.length; i += 500) {
       const chunk = mine.slice(i, i + 500);
       const { error } = await client.from(table).upsert(chunk.map((c) => toRemote(table, c.record)), { onConflict: 'id' });
-      if (error) throw error;
+      if (error) {
+        firstError = firstError || error;
+        break;
+      }
       store.markPushed(chunk);
     }
   }
+  if (firstError) throw firstError;
 }
 
+// Like push, one failing table doesn't stop the rest from pulling.
 async function pull() {
   let changed = false;
+  let firstError = null;
   for (const table of store.TABLES) {
     const saved = store.cursor(table);
     let since = saved ? new Date(Date.parse(saved) - MARGIN_MS).toISOString() : '1970-01-01T00:00:00Z';
     for (;;) {
       const { data, error } = await client.from(table).select('*')
         .gt('synced_at', since).order('synced_at', { ascending: true }).limit(PAGE);
-      if (error) throw error;
+      if (error) {
+        firstError = firstError || error;
+        break;
+      }
       if (!data.length) break;
       if (store.applyRemote(table, data.map((row) => fromRemote(table, row)))) changed = true;
       since = data[data.length - 1].synced_at;
@@ -111,6 +127,7 @@ async function pull() {
     }
   }
   store.finishPull(changed);
+  if (firstError) throw firstError;
 }
 
 export async function syncNow() {
@@ -130,8 +147,11 @@ export async function syncNow() {
     const { data } = await client.auth.getSession();
     if (!data.session) throw new Error('Signed out');
     if (data.session.user.id !== store.userId()) throw new Error('Different account');
-    await push();
+    // Pull even when a push failed, so one broken table doesn't stop
+    // changes from other devices coming in.
+    const pushError = await push().then(() => null, (err) => err);
     await pull();
+    if (pushError) throw pushError;
     store.seedIfEmpty();
     state.lastSynced = Date.now();
     state.error = null;

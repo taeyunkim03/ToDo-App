@@ -76,14 +76,26 @@
         <div id="cal-grid" class="grid"></div>
       </section>
 
-      <section class="day" aria-labelledby="day-title">
-        <div class="day-head">
-          <h2 id="day-title" class="day-title"></h2>
-          <span id="day-summary" class="day-summary"></span>
-        </div>
-        <p id="day-holiday" class="day-holiday" hidden></p>
-        <div id="groups" class="groups"></div>
-      </section>
+      <div class="stack">
+        <section class="day" aria-labelledby="day-title">
+          <div class="day-head">
+            <h2 id="day-title" class="day-title"></h2>
+            <span id="day-summary" class="day-summary"></span>
+          </div>
+          <p id="day-holiday" class="day-holiday" hidden></p>
+          <div id="groups" class="groups"></div>
+        </section>
+
+        <section id="someday" class="someday" aria-labelledby="someday-title">
+          <div class="someday-head">
+            <h2 id="someday-title" class="someday-title">Someday</h2>
+            <span id="someday-count" class="someday-count"></span>
+          </div>
+          <p class="someday-hint">No date. Stays here until you check it off.</p>
+          <ul id="someday-list" class="someday-list" aria-labelledby="someday-title"></ul>
+          <div id="someday-add"></div>
+        </section>
+      </div>
     </div>
   </main>
 

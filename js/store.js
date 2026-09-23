@@ -7,7 +7,7 @@ import { addDays } from './dates.js';
 import { occursOn, cleanRule, anchorYearly } from './repeat.js';
 import { nextColor } from './palette.js';
 
-export const TABLES = ['categories', 'routines', 'tasks', 'occurrences', 'settings'];
+export const TABLES = ['categories', 'routines', 'tasks', 'someday', 'occurrences', 'settings'];
 
 const listeners = new Set();
 let localChangeHook = null;
@@ -33,6 +33,7 @@ function emptyDb(userId) {
     userId,
     categories: {},
     tasks: {},
+    someday: {},
     routines: {},
     occurrences: {},
     settings: {},
@@ -40,6 +41,8 @@ function emptyDb(userId) {
     outbox: {},
     krHolidays: {},
     krYears: {},
+    // Device-only preference for the someday quick add. Never synced.
+    somedayCategoryId: null,
     seeded: false
   };
 }
@@ -232,7 +235,8 @@ export function itemCount(categoryId) {
   if (!db) return 0;
   const tasks = Object.values(db.tasks).filter((t) => alive(t) && t.categoryId === categoryId).length;
   const routines = Object.values(db.routines).filter((r) => alive(r) && r.categoryId === categoryId).length;
-  return tasks + routines;
+  const someday = Object.values(db.someday).filter((s) => alive(s) && s.categoryId === categoryId).length;
+  return tasks + routines + someday;
 }
 
 function taskItem(t) {
@@ -336,13 +340,14 @@ export function updateCategory(id, patch, { silent = false } = {}) {
   if (!silent) notify();
 }
 
-// Deleting a category also deletes its tasks and repeats.
+// Deleting a category also deletes its tasks, repeats and someday tasks.
 export function deleteCategory(id) {
   const c = db.categories[id];
   if (!c) return;
   put('categories', { ...c, deleted: true });
   for (const t of Object.values(db.tasks)) if (alive(t) && t.categoryId === id) put('tasks', { ...t, deleted: true });
   for (const r of Object.values(db.routines)) if (alive(r) && r.categoryId === id) put('routines', { ...r, deleted: true });
+  for (const s of Object.values(db.someday)) if (alive(s) && s.categoryId === id) put('someday', { ...s, deleted: true });
   commit();
 }
 
@@ -379,6 +384,88 @@ export function deleteTask(id) {
   const t = db.tasks[id];
   if (t) put('tasks', { ...t, deleted: true });
   commit();
+}
+
+// ---------- Someday ----------
+
+// A someday task waits on every day from addedOn until it's checked off,
+// shows as done on doneOn, and is hidden after that.
+function somedayVisible(s, date) {
+  return s.addedOn <= date && (!s.doneOn || s.doneOn >= date);
+}
+
+function liveSomeday() {
+  return Object.values(db.someday).filter(alive).sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export function somedayOn(date) {
+  if (!db) return [];
+  return liveSomeday()
+    .filter((s) => getCategory(s.categoryId) && somedayVisible(s, date))
+    .map((s) => ({
+      kind: 'someday', id: s.id, title: s.title, note: s.note || '',
+      categoryId: s.categoryId, done: s.doneOn === date, sortOrder: s.sortOrder
+    }));
+}
+
+export function addSomeday(categoryId, title, addedOn, { silent = false } = {}) {
+  const s = put('someday', {
+    id: newId(), categoryId, title, note: '', addedOn, doneOn: null,
+    sortOrder: liveSomeday().reduce((max, x) => Math.max(max, x.sortOrder), -1) + 1,
+    deleted: false
+  });
+  persist();
+  if (!silent) notify();
+  return s;
+}
+
+export function updateSomeday(id, patch) {
+  const s = db.someday[id];
+  if (!s) return;
+  const { title, note, categoryId } = patch;
+  put('someday', { ...s, title, note, categoryId });
+  commit();
+}
+
+// A task is never visible after doneOn, so checking on any visible day
+// other than doneOn moves doneOn earlier, and checking on doneOn clears it.
+export function toggleSomeday(id, date) {
+  const s = db.someday[id];
+  if (!s) return;
+  put('someday', { ...s, doneOn: s.doneOn === date ? null : date });
+  commit();
+}
+
+export function deleteSomeday(id) {
+  const s = db.someday[id];
+  if (s) put('someday', { ...s, deleted: true });
+  commit();
+}
+
+// visibleIds is the new order of the items shown on one day. Hidden items
+// keep their slots, and every live item is renumbered so orders never collide.
+export function reorderSomeday(visibleIds) {
+  const all = liveSomeday();
+  const visible = new Set(visibleIds);
+  const queue = visibleIds.map((id) => db.someday[id]).filter((s) => s && alive(s));
+  const ordered = all.map((s) => (visible.has(s.id) ? queue.shift() : s));
+  ordered.forEach((s, i) => {
+    if (s && s.sortOrder !== i) put('someday', { ...s, sortOrder: i });
+  });
+  commit();
+}
+
+export function somedayCategory() {
+  if (!db) return null;
+  if (getCategory(db.somedayCategoryId)) return db.somedayCategoryId;
+  const first = categories()[0];
+  return first ? first.id : null;
+}
+
+export function setSomedayCategory(id) {
+  if (!db) return;
+  db.somedayCategoryId = id;
+  persist();
 }
 
 // ---------- Repeats ----------
