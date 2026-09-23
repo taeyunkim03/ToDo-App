@@ -41,8 +41,6 @@ function emptyDb(userId) {
     outbox: {},
     krHolidays: {},
     krYears: {},
-    // Device-only preference for the someday quick add. Never synced.
-    somedayCategoryId: null,
     seeded: false
   };
 }
@@ -60,6 +58,7 @@ export function open(userId) {
   db = saved && saved.version === 2 && saved.userId === userId ? { ...emptyDb(userId), ...saved } : emptyDb(userId);
   delete db.serverKr;
   delete db.holidaysFetchedAt;
+  delete db.somedayCategoryId;
   // Default settings are dated 1970 so any saved server version wins.
   if (!db.settings[userId]) {
     db.settings[userId] = { id: userId, showUs: true, showKr: true, updatedAt: new Date(0).toISOString(), deleted: false };
@@ -235,8 +234,7 @@ export function itemCount(categoryId) {
   if (!db) return 0;
   const tasks = Object.values(db.tasks).filter((t) => alive(t) && t.categoryId === categoryId).length;
   const routines = Object.values(db.routines).filter((r) => alive(r) && r.categoryId === categoryId).length;
-  const someday = Object.values(db.someday).filter((s) => alive(s) && s.categoryId === categoryId).length;
-  return tasks + routines + someday;
+  return tasks + routines;
 }
 
 function taskItem(t) {
@@ -340,14 +338,13 @@ export function updateCategory(id, patch, { silent = false } = {}) {
   if (!silent) notify();
 }
 
-// Deleting a category also deletes its tasks, repeats and someday tasks.
+// Deleting a category also deletes its tasks and repeats.
 export function deleteCategory(id) {
   const c = db.categories[id];
   if (!c) return;
   put('categories', { ...c, deleted: true });
   for (const t of Object.values(db.tasks)) if (alive(t) && t.categoryId === id) put('tasks', { ...t, deleted: true });
   for (const r of Object.values(db.routines)) if (alive(r) && r.categoryId === id) put('routines', { ...r, deleted: true });
-  for (const s of Object.values(db.someday)) if (alive(s) && s.categoryId === id) put('someday', { ...s, deleted: true });
   commit();
 }
 
@@ -398,19 +395,21 @@ function liveSomeday() {
   return Object.values(db.someday).filter(alive).sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
+// Someday tasks have no category. Older records may still carry a
+// categoryId, which is ignored.
 export function somedayOn(date) {
   if (!db) return [];
   return liveSomeday()
-    .filter((s) => getCategory(s.categoryId) && somedayVisible(s, date))
+    .filter((s) => somedayVisible(s, date))
     .map((s) => ({
       kind: 'someday', id: s.id, title: s.title, note: s.note || '',
-      categoryId: s.categoryId, done: s.doneOn === date, sortOrder: s.sortOrder
+      done: s.doneOn === date, sortOrder: s.sortOrder
     }));
 }
 
-export function addSomeday(categoryId, title, addedOn, { silent = false } = {}) {
+export function addSomeday(title, addedOn, { silent = false } = {}) {
   const s = put('someday', {
-    id: newId(), categoryId, title, note: '', addedOn, doneOn: null,
+    id: newId(), title, note: '', addedOn, doneOn: null,
     sortOrder: liveSomeday().reduce((max, x) => Math.max(max, x.sortOrder), -1) + 1,
     deleted: false
   });
@@ -422,8 +421,8 @@ export function addSomeday(categoryId, title, addedOn, { silent = false } = {}) 
 export function updateSomeday(id, patch) {
   const s = db.someday[id];
   if (!s) return;
-  const { title, note, categoryId } = patch;
-  put('someday', { ...s, title, note, categoryId });
+  const { title, note } = patch;
+  put('someday', { ...s, title, note });
   commit();
 }
 
@@ -453,19 +452,6 @@ export function reorderSomeday(visibleIds) {
     if (s && s.sortOrder !== i) put('someday', { ...s, sortOrder: i });
   });
   commit();
-}
-
-export function somedayCategory() {
-  if (!db) return null;
-  if (getCategory(db.somedayCategoryId)) return db.somedayCategoryId;
-  const first = categories()[0];
-  return first ? first.id : null;
-}
-
-export function setSomedayCategory(id) {
-  if (!db) return;
-  db.somedayCategoryId = id;
-  persist();
 }
 
 // ---------- Repeats ----------

@@ -99,7 +99,7 @@ create table if not exists public.settings (
 create table if not exists public.someday (
   id          uuid primary key,
   user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  category_id uuid not null,
+  category_id uuid,
   title       text not null default '',
   note        text not null default '',
   added_on    date not null,
@@ -109,6 +109,9 @@ create table if not exists public.someday (
   synced_at   timestamptz not null default now(),
   deleted     boolean not null default false
 );
+
+-- Someday tasks no longer have a category.
+alter table public.someday alter column category_id drop not null;
 
 -- 3. Triggers and indexes
 

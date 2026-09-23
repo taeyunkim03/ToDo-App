@@ -346,9 +346,17 @@ svg { display: block; }
   letter-spacing: -0.01em;
 }
 .someday-count { font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; }
-.someday-hint { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
 .someday-list { list-style: none; margin: 10px 0 0; padding: 0; min-height: 6px; }
-.someday .task { background: var(--bg); }
+/* Plain list, so the checkbox uses neutral colors instead of a category's */
+.someday .task {
+  background: var(--bg);
+  --c: var(--ink);
+  --border: var(--muted);
+  --check: #FFFFFF;
+}
+/* A checked box is solid black, and the quick add underline matches it */
+.someday .task.is-done { --border: var(--ink); }
+.someday .add-row { --c: var(--ink); }
 .someday-add {
   width: 100%;
   min-height: 44px;
@@ -365,20 +373,6 @@ svg { display: block; }
   text-align: left;
 }
 .someday-add svg { width: 14px; height: 14px; }
-
-/* The quick add category chip. The button gives the pill a 44 px hit area. */
-.someday-chip {
-  max-width: 45%;
-  min-height: 44px;
-  margin-right: 8px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-.someday-chip .chip { max-width: 100%; }
 
 .empty { padding: 24px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; color: var(--muted); }
 .empty p { margin: 0; }

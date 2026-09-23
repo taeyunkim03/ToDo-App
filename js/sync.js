@@ -17,8 +17,8 @@ const FIELDS = {
     sortOrder: 'sort_order', updatedAt: 'updated_at', deleted: 'deleted'
   },
   someday: {
-    id: 'id', categoryId: 'category_id', title: 'title', note: 'note', addedOn: 'added_on',
-    doneOn: 'done_on', sortOrder: 'sort_order', updatedAt: 'updated_at', deleted: 'deleted'
+    id: 'id', title: 'title', note: 'note', addedOn: 'added_on', doneOn: 'done_on',
+    sortOrder: 'sort_order', updatedAt: 'updated_at', deleted: 'deleted'
   },
   occurrences: {
     id: 'id', routineId: 'routine_id', date: 'date', done: 'done', skipped: 'skipped', moveTo: 'move_to',

@@ -97,7 +97,7 @@ const els = {
   fNote: $('#f-note'),
   fCats: $('#f-categories'),
   fDate: $('#f-date'),
-  fDateRow: $('#f-date').closest('.date-row'),
+  fCatCard: $('#f-categories').closest('.field-card'),
   repeatCard: $('#repeat-card'),
   toast: $('#toast')
 };
@@ -286,13 +286,7 @@ function groupEl(c, items) {
 
 function itemRow(item) {
   const someday = item.kind === 'someday';
-  // Someday rows aren't inside a category group, so they carry its colors themselves.
-  const category = someday ? store.getCategory(item.categoryId) : null;
-  return h('li', {
-    class: cls('task', item.done && 'is-done'),
-    dataset: { id: item.id, kind: item.kind },
-    style: category ? groupStyle(category) : null
-  },
+  return h('li', { class: cls('task', item.done && 'is-done'), dataset: { id: item.id, kind: item.kind } },
     h('button', {
       type: 'button',
       class: 'check',
@@ -374,13 +368,8 @@ function addRow(c) {
 
 // Someday
 
+// Someday has no categories, so it shows even when there are none.
 function renderSomeday() {
-  const cats = store.categories();
-  els.someday.hidden = !cats.length;
-  if (!cats.length) {
-    ui.addingSomeday = false;
-    return;
-  }
   const items = store.somedayOn(ui.selected);
   updateSomedayCount(items);
   els.somedayList.replaceChildren(...items.map(itemRow));
@@ -398,7 +387,7 @@ function updateSomedayCount(items = store.somedayOn(ui.selected)) {
 
 function somedayAddButton() {
   return h('button', { type: 'button', class: 'someday-add', onclick: openSomedayAdd },
-    icon('plus'), h('span', { text: 'Add a someday task' }));
+    icon('plus'), h('span', { text: 'Add a task' }));
 }
 
 function openSomedayAdd() {
@@ -414,57 +403,24 @@ function closeSomedayAdd(row) {
 
 // Add without redrawing so the keyboard stays open for the next task.
 // Adding on a past day starts it that day. Adding on a future day starts it today.
-function somedayQuickAdd(categoryId, title) {
+function somedayQuickAdd(title) {
   const addedOn = ui.selected < ui.today ? ui.selected : ui.today;
-  const s = store.addSomeday(categoryId, title, addedOn, { silent: true });
+  const s = store.addSomeday(title, addedOn, { silent: true });
   els.somedayList.append(itemRow({
-    kind: 'someday', id: s.id, title: s.title, note: '', categoryId, done: false, sortOrder: s.sortOrder
+    kind: 'someday', id: s.id, title: s.title, note: '', done: false, sortOrder: s.sortOrder
   }));
   updateSomedayCount();
   renderSyncChip();
 }
 
 function somedayAddRow() {
-  let categoryId = store.somedayCategory();
-  // Set while the chip is being tapped, so the input's blur doesn't close the row.
-  let chipTap = false;
   const input = h('input', {
     id: 'someday-input', class: 'add-input', type: 'text', placeholder: 'New someday task',
-    autocomplete: 'off', enterkeyhint: 'done'
+    'aria-label': 'New someday task', autocomplete: 'off', enterkeyhint: 'done'
   });
-  const chip = h('button', { type: 'button', class: 'someday-chip' });
-  const row = h('div', { class: 'add-row someday-add-row' }, chip, input);
-
-  const showCategory = () => {
-    const c = store.getCategory(categoryId);
-    for (const [prop, value] of Object.entries(groupStyle(c))) row.style.setProperty(prop, value);
-    chip.setAttribute('aria-label', `Category ${c.name}, tap to change`);
-    input.setAttribute('aria-label', `New someday task in ${c.name}`);
-    chip.replaceChildren(h('span', { class: 'chip' },
-      h('span', { class: cls('chip-dot', needsOutline(c.color) && 'is-outlined') }),
-      h('span', { class: 'chip-name', text: c.name })));
-  };
-  showCategory();
-
-  // Keep focus in the input so the keyboard stays up. preventDefault covers
-  // desktop browsers, and the flag covers iOS Safari, which can still move focus.
-  chip.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    chipTap = true;
-  });
-  chip.addEventListener('mousedown', (e) => e.preventDefault());
-  chip.addEventListener('pointercancel', () => {
-    chipTap = false;
-  });
-  chip.addEventListener('click', () => {
-    const cats = store.categories();
-    const i = cats.findIndex((c) => c.id === categoryId);
-    categoryId = cats[(i + 1) % cats.length].id;
-    store.setSomedayCategory(categoryId);
-    showCategory();
-    chipTap = false;
-    input.focus();
-  });
+  const row = h('div', { class: 'add-row' },
+    h('span', { class: 'check-slot', 'aria-hidden': 'true' }, h('span', { class: 'box is-ghost' })),
+    input);
 
   input.addEventListener('keydown', (e) => {
     // Korean input fires Enter while a syllable is still being composed.
@@ -473,28 +429,22 @@ function somedayAddRow() {
       e.preventDefault();
       const title = input.value.trim();
       input.value = '';
-      if (title) somedayQuickAdd(categoryId, title);
+      if (title) somedayQuickAdd(title);
       else closeSomedayAdd(row);
     } else if (e.key === 'Escape') {
       input.value = '';
       closeSomedayAdd(row);
     }
   });
-
-  // Leaving the row saves any typed text and closes it. Moving between the
-  // input and the chip, by tap or keyboard, keeps it open.
-  const onLeave = () => {
+  input.addEventListener('blur', () => {
     setTimeout(() => {
-      if (!row.isConnected || !ui.addingSomeday) return;
-      if (chipTap || row.contains(document.activeElement)) return;
+      if (!input.isConnected || !ui.addingSomeday) return;
       const title = input.value.trim();
       input.value = '';
-      if (title) somedayQuickAdd(categoryId, title);
+      if (title) somedayQuickAdd(title);
       closeSomedayAdd(row);
     }, 0);
-  };
-  input.addEventListener('blur', onLeave);
-  chip.addEventListener('blur', onLeave);
+  });
   return row;
 }
 
@@ -658,9 +608,7 @@ function makeSortables() {
       sortables.push(Sortable.create(ul, { ...rows, group: 'tasks', onEnd: onItemDrop }));
     });
     // Its own group, so items can't move between Someday and the day's categories.
-    if (!els.someday.hidden) {
-      sortables.push(Sortable.create(els.somedayList, { ...rows, group: 'someday', onEnd: onSomedayDrop }));
-    }
+    sortables.push(Sortable.create(els.somedayList, { ...rows, group: 'someday', onEnd: onSomedayDrop }));
   } else if (ui.view === 'categories' && !els.catList.hidden) {
     sortables.push(Sortable.create(els.catList, {
       ...common,
@@ -726,8 +674,7 @@ function openSheet(item) {
         h('span', { text: c.name })))));
   $('[data-action="skip"]', els.form).hidden = !routine;
   // Reset every time, so a normal task opened after a someday one shows everything.
-  els.fDateRow.hidden = someday;
-  els.fDateRow.previousElementSibling.hidden = someday;
+  els.fCatCard.hidden = someday;
   els.repeatCard.hidden = someday;
   $('[data-action="tomorrow"]', els.form).hidden = someday;
   showScope(null);
@@ -951,12 +898,12 @@ function saveSheet() {
     showToast('Add a task name to save');
     return;
   }
-  if (!store.getCategory(form.categoryId)) form.categoryId = sheet.item.categoryId;
   if (sheet.item.kind === 'someday') {
-    store.updateSomeday(sheet.item.id, { title: form.title, note: form.note, categoryId: form.categoryId });
+    store.updateSomeday(sheet.item.id, { title: form.title, note: form.note });
     closeSheet();
     return;
   }
+  if (!store.getCategory(form.categoryId)) form.categoryId = sheet.item.categoryId;
   const rule = sheet.freq === 'never' ? null : previewRule(form);
   if (rule && !ruleIsValid(rule)) {
     showToast(rule.freq === 'weekly' ? 'Pick at least one day of the week' : 'Check the repeat settings');
