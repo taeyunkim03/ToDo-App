@@ -659,7 +659,9 @@ function openSheet(item) {
     ruleFresh: !routine,
     endMode: routine && routine.endDate ? 'date' : 'never',
     endDate: routine && routine.endDate ? routine.endDate : addDays(item.date, 90),
-    scope: null
+    scope: null,
+    // Past days move to today. Today and later days move one day on.
+    moveTarget: item.date < ui.today ? ui.today : addDays(item.date, 1)
   };
 
   els.dialogTitle.textContent = someday ? 'Edit someday task' : routine ? 'Edit repeating task' : 'Edit task';
@@ -676,7 +678,10 @@ function openSheet(item) {
   // Reset every time, so a normal task opened after a someday one shows everything.
   els.fCatCard.hidden = someday;
   els.repeatCard.hidden = someday;
-  $('[data-action="tomorrow"]', els.form).hidden = someday;
+  const moveBtn = $('[data-action="move"]', els.form);
+  moveBtn.textContent = item.date < ui.today ? 'Move to today'
+    : item.date === ui.today ? 'Move to tomorrow' : 'Move to next day';
+  moveBtn.hidden = someday;
   showScope(null);
   renderRepeat();
   els.dialog.showModal();
@@ -979,16 +984,19 @@ els.form.addEventListener('click', (e) => {
     case 'cancel':
       closeSheet();
       break;
-    case 'tomorrow':
+    case 'move': {
+      const target = sheet.moveTarget;
       if (item.kind === 'task') {
         const form = readForm();
-        store.updateTask(item.id, { ...form, title: form.title || item.title, date: addDays(item.date, 1) });
+        store.updateTask(item.id, { ...form, title: form.title || item.title, date: target });
       } else {
-        store.updateOccurrence(item, { moveTo: addDays(item.date, 1) });
+        store.updateOccurrence(item, { moveTo: target });
       }
       closeSheet();
-      showToast(`Moved to ${shortDate(addDays(item.date, 1))}`);
+      showToast(target === ui.today ? 'Moved to today'
+        : target === addDays(ui.today, 1) ? 'Moved to tomorrow' : `Moved to ${shortDate(target)}`);
       break;
+    }
     case 'skip':
       store.updateOccurrence(item, { skipped: true });
       closeSheet();
