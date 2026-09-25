@@ -685,6 +685,7 @@ function openSheet(item) {
   showScope(null);
   renderRepeat();
   els.dialog.showModal();
+  els.form.focus({ preventScroll: true });
   els.sheetMain.scrollTop = 0;
 }
 
@@ -889,7 +890,7 @@ function showScope(mode, ruleChanged = false) {
     dayBtn.textContent = 'Delete this day only';
     futureBtn.textContent = 'Delete this and future days';
   }
-  (dayBtn.hidden ? futureBtn : dayBtn).focus();
+  els.sheetScope.focus({ preventScroll: true });
 }
 
 function closeSheet() {

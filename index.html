@@ -186,7 +186,7 @@
 
   <!-- Task sheet -->
   <dialog id="task-dialog" aria-labelledby="task-dialog-title">
-    <form id="task-form" novalidate>
+    <form id="task-form" tabindex="-1" novalidate>
       <header class="sheet-head">
         <button type="button" class="text-btn" data-action="cancel">Cancel</button>
         <h2 id="task-dialog-title">Edit task</h2>
@@ -222,7 +222,7 @@
         </div>
       </div>
 
-      <div id="sheet-scope" class="sheet-body scope" hidden>
+      <div id="sheet-scope" class="sheet-body scope" tabindex="-1" hidden>
         <p id="scope-text" class="scope-text"></p>
         <button type="button" class="ghost-btn" data-action="scope-day">This day only</button>
         <button type="button" class="ghost-btn" data-action="scope-future">This and future days</button>

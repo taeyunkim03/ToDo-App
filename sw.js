@@ -2,7 +2,7 @@
 // instantly, even with no connection, and each launch quietly downloads
 // any updated files for next time. Supabase requests are never cached.
 
-const CACHE = 'todo-v4';
+const CACHE = 'todo-v5';
 const SHELL = [
   './', 'index.html', 'styles.css', 'config.js', 'manifest.webmanifest',
   'js/app.js', 'js/store.js', 'js/holiday-feed.js', 'js/sync.js', 'js/repeat.js', 'js/holidays.js', 'js/dates.js', 'js/palette.js',
