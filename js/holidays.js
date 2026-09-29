@@ -1,7 +1,4 @@
 // Holidays shown in red on the calendar.
-// US federal holidays are calculated by rule, so they work for any year.
-// Korean holidays come from holiday-feed.js, with the 2026 and 2027 dates
-// built in as a fallback.
 
 import { toKey, daysIn } from './dates.js';
 
@@ -23,8 +20,7 @@ const KR_BUILTIN = {
   '2027-12-25': 'Christmas Day', '2027-12-27': 'Substitute holiday'
 };
 
-// English names for the official Korean names. Spaces are ignored when
-// matching, so "부처님 오신 날" and "부처님오신날" both work.
+// English names for the official Korean names.
 const KR_NAMES = [
   ['1월1일', "New Year's Day"], ['신정', "New Year's Day"], ['1절', 'Independence Movement Day'],
   ['삼일절', 'Independence Movement Day'], ['노동절', 'Labor Day'], ['근로자의날', 'Labor Day'],
@@ -44,8 +40,6 @@ export function krName(name) {
   return match ? match[1] : name;
 }
 
-// ---------- US ----------
-
 const usCache = new Map();
 
 function nthWeekday(year, month, weekday, n) {
@@ -63,7 +57,6 @@ function usHolidays(year) {
   if (usCache.has(year)) return usCache.get(year);
   const out = new Map();
   const add = (month, day, name) => out.set(toKey(new Date(year, month, day)), name);
-  // Fixed-date holidays move to Friday or Monday when they fall on a weekend.
   const fixed = (month, day, name) => {
     add(month, day, name);
     const weekday = new Date(year, month, day).getDay();
@@ -90,8 +83,6 @@ function usName(key) {
   // New Year's Day observed can fall on Dec 31 of the year before.
   return usHolidays(year).get(key) || usHolidays(year + 1).get(key) || null;
 }
-
-// ---------- Korea ----------
 
 // fetched is a map of 'YYYY-MM-DD' to a list of official Korean names.
 function krNames(key, fetched) {

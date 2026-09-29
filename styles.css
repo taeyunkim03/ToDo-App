@@ -1,5 +1,3 @@
-/* Fonts are bundled so the app looks the same offline. Korean text falls
-   back to the system font (Apple SD Gothic Neo on Apple devices). */
 @font-face { font-family: 'Figtree'; font-weight: 400; font-display: swap; src: url('fonts/figtree-latin-400-normal.woff2') format('woff2'); }
 @font-face { font-family: 'Figtree'; font-weight: 500; font-display: swap; src: url('fonts/figtree-latin-500-normal.woff2') format('woff2'); }
 @font-face { font-family: 'Figtree'; font-weight: 600; font-display: swap; src: url('fonts/figtree-latin-600-normal.woff2') format('woff2'); }
@@ -95,8 +93,6 @@ svg { display: block; }
 .divider { height: 1px; background: var(--line); }
 .field-label { font-size: 12px; font-weight: 600; color: var(--muted); }
 
-/* ---------- Sign in ---------- */
-
 .login {
   min-height: 100vh;
   min-height: 100dvh;
@@ -127,8 +123,6 @@ svg { display: block; }
 .form-error { min-height: 20px; margin: 0 0 4px; color: var(--danger); font-size: 14px; }
 .login-card .text-btn { align-self: center; color: var(--muted); font-weight: 600; }
 
-/* ---------- Header ---------- */
-
 .app-header {
   max-width: 1400px;
   margin: 0 auto;
@@ -158,8 +152,6 @@ svg { display: block; }
   white-space: nowrap;
 }
 .sync-chip.is-error { background: #FBE0E1; color: var(--danger); }
-
-/* ---------- Calendar ---------- */
 
 .layout {
   max-width: 1400px;
@@ -193,7 +185,9 @@ svg { display: block; }
 .weekdays { padding: 2px 0; font-size: 12px; font-weight: 600; color: var(--muted); text-align: center; }
 
 .cell {
-  height: 50px;
+  --dot: 6px;
+  --dot-gap: 3px;
+  min-height: 50px;
   padding: 5px 0 0;
   border: 0;
   border-radius: 12px;
@@ -221,12 +215,17 @@ svg { display: block; }
 .cell.is-today .num { box-shadow: inset 0 0 0 1.5px var(--ink); font-weight: 700; }
 .cell.is-selected .num { background: var(--ink); color: #FFFFFF; box-shadow: none; font-weight: 700; }
 
-.dots { display: flex; gap: 3px; height: 6px; }
-.dot { width: 6px; height: 6px; border-radius: 50%; }
+.dots {
+  width: calc(var(--dot) * 4 + var(--dot-gap) * 3);
+  min-height: var(--dot);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--dot-gap);
+}
+.dot { width: var(--dot); height: var(--dot); border-radius: 50%; }
 .dot.is-outlined { box-shadow: inset 0 0 0 1px rgba(29, 29, 31, 0.25); }
 .dot.is-done { opacity: 0.35; }
-
-/* ---------- Selected day ---------- */
 
 .day { padding: 18px 18px 48px 20px; container-type: inline-size; }
 .day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
@@ -332,8 +331,6 @@ svg { display: block; }
 .is-chosen { background: var(--card); box-shadow: 0 6px 20px rgba(29, 29, 31, 0.14); }
 .is-ghost-row { opacity: 0.35; }
 
-/* ---------- Someday ---------- */
-
 .stack { display: flex; flex-direction: column; }
 
 .someday { padding: 6px 18px 48px 20px; }
@@ -347,14 +344,12 @@ svg { display: block; }
 }
 .someday-count { font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; }
 .someday-list { list-style: none; margin: 10px 0 0; padding: 0; min-height: 6px; }
-/* Plain list, so the checkbox uses neutral colors instead of a category's */
 .someday .task {
   background: var(--bg);
   --c: var(--ink);
   --border: var(--muted);
   --check: #FFFFFF;
 }
-/* A checked box is solid black, and the quick add underline matches it */
 .someday .task.is-done { --border: var(--ink); }
 .someday .add-row { --c: var(--ink); }
 .someday-add {
@@ -376,8 +371,6 @@ svg { display: block; }
 
 .empty { padding: 24px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; color: var(--muted); }
 .empty p { margin: 0; }
-
-/* ---------- Categories and settings ---------- */
 
 .sub-head {
   max-width: 960px;
@@ -541,8 +534,6 @@ svg { display: block; }
 .switch .knob { width: 27px; height: 27px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(29, 29, 31, 0.3); }
 .switch[aria-checked="true"] .track { background: var(--ink); justify-content: flex-end; }
 
-/* ---------- Task sheet ---------- */
-
 dialog {
   width: 100%;
   max-width: 560px;
@@ -629,7 +620,6 @@ input[type="date"] {
   appearance: none;
 }
 
-/* Repeat controls */
 .repeat-card { gap: 10px; }
 .segmented {
   padding: 3px;
@@ -720,8 +710,6 @@ input[type="date"] {
 .scope .text-btn { align-self: center; color: var(--muted); }
 .scope-text { margin: 0 4px 4px; color: var(--muted); font-size: 15px; }
 
-/* ---------- Toast ---------- */
-
 .toast {
   position: fixed;
   left: 50%;
@@ -742,16 +730,12 @@ input[type="date"] {
 }
 .toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
 
-/* ---------- Small phones (iPhone 13 mini and SE) ---------- */
-
 @media (max-width: 380px) {
   .segmented button { font-size: 13px; }
   .weekday-pills button { font-size: 13px; }
   .palette-row .hue { width: 50px; font-size: 12px; }
   .palette-row { gap: 4px; }
 }
-
-/* ---------- iPad and MacBook: calendar beside the day ---------- */
 
 @media (min-width: 700px) {
   .app-header { padding: 22px 28px 14px 32px; }
@@ -773,7 +757,7 @@ input[type="date"] {
     border-radius: 26px;
   }
   .month-title { font-size: 19px; }
-  .cell { height: 64px; padding-top: 8px; gap: 6px; }
+  .cell { min-height: 64px; padding-top: 8px; gap: 6px; }
   .cell .num { width: 36px; height: 36px; font-size: 16px; }
 
   .stack { flex: 1; min-width: 0; gap: 20px; }
@@ -815,10 +799,8 @@ input[type="date"] {
   .calendar { padding: 16px; }
   .month-title { font-size: 21px; }
   .weekdays { padding: 4px 0 6px; font-size: 13px; }
-  .cell { height: 84px; padding-top: 10px; gap: 8px; }
+  .cell { min-height: 84px; padding-top: 10px; gap: 8px; --dot: 7px; --dot-gap: 4px; }
   .cell .num { width: 38px; height: 38px; font-size: 17px; }
-  .dots { gap: 4px; height: 7px; }
-  .dot { width: 7px; height: 7px; }
   .day { padding: 28px 32px; }
   .day-title { font-size: 28px; }
   .day-summary, .day-holiday { font-size: 14px; }
@@ -826,10 +808,9 @@ input[type="date"] {
   .someday-title { font-size: 22px; }
 }
 
-/* A longer calendar on the Mac only, so the two columns end at about the same height.
-   Touch iPads don't match this, so their calendar keeps its size. */
+/* A longer calendar on the Mac only, so the two columns end at about the same height. */
 @media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
-  .cell { height: 104px; padding-top: 14px; gap: 10px; }
+  .cell { min-height: 104px; padding-top: 14px; gap: 10px; }
   .cell .num { width: 40px; height: 40px; font-size: 18px; }
 }
 

@@ -1,11 +1,4 @@
--- ToDo database setup
--- Paste this whole file into the Supabase SQL editor and click Run.
--- It is safe to run again later; it only creates what is missing.
-
--- 1. Sync stamp
--- Every row carries updated_at (when it was edited on a device) and
--- synced_at (when the server received it). If an older edit arrives late
--- from a device that was offline, the newer version is kept.
+-- ToDo database setup: run this whole file in the Supabase SQL editor (safe to re-run).
 
 create or replace function public.todo_sync_stamp()
 returns trigger
@@ -20,8 +13,6 @@ begin
   return new;
 end;
 $$;
-
--- 2. Tables
 
 create table if not exists public.categories (
   id          uuid primary key,
@@ -48,8 +39,6 @@ create table if not exists public.tasks (
   deleted     boolean not null default false
 );
 
--- rule holds the repeat settings, for example
--- {"freq":"monthly","interval":1,"monthMode":"date","monthDay":31}
 create table if not exists public.routines (
   id          uuid primary key,
   user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
@@ -65,8 +54,7 @@ create table if not exists public.routines (
   deleted     boolean not null default false
 );
 
--- One row per repeat occurrence that was checked off, skipped, moved or
--- edited. id is "<routine id>:<original date>".
+-- One row per changed repeat occurrence, with id "<routine id>:<original date>".
 create table if not exists public.occurrences (
   id          text primary key,
   user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
@@ -84,7 +72,7 @@ create table if not exists public.occurrences (
   deleted     boolean not null default false
 );
 
--- One row per user. id is the user's own id.
+-- One row per user.
 create table if not exists public.settings (
   id          uuid primary key,
   user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
@@ -95,7 +83,7 @@ create table if not exists public.settings (
   deleted     boolean not null default false
 );
 
--- Tasks with no date. They show every day from added_on until done_on.
+-- Tasks with no date.
 create table if not exists public.someday (
   id          uuid primary key,
   user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
@@ -113,8 +101,6 @@ create table if not exists public.someday (
 -- Someday tasks no longer have a category.
 alter table public.someday alter column category_id drop not null;
 
--- 3. Triggers and indexes
-
 do $$
 declare
   t text;
@@ -128,8 +114,6 @@ begin
   end loop;
 end;
 $$;
-
--- 4. Security: each signed-in user can only read and write their own rows.
 
 do $$
 declare

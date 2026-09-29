@@ -1,8 +1,4 @@
-// Korean public holidays from the holidays-kr project (MIT license), which
-// publishes the official government holiday calendar as one JSON file per
-// year. No API key is needed. Each year is kept on the device for offline use
-// and refreshed every 12 hours. If neither source can be reached, the dates
-// built into holidays.js are used for 2026 and 2027.
+// Fetches and caches Korean public holidays from the holidays-kr project.
 
 import * as store from './store.js';
 

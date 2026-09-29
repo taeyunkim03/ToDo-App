@@ -1,5 +1,4 @@
-// The 38-swatch palette: 7 hues in 5 shades from full to light, plus
-// white, gray and black.
+// Category colors: 7 hues in 5 shades, plus white, gray and black.
 
 export const PALETTE = [
   { hue: 'Red', shades: ['#E5484D', '#EC767A', '#F19A9D', '#F6BFC1', '#FBE0E1'] },

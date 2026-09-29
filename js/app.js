@@ -11,8 +11,6 @@ import {
   defaultRule, anchorYearly, cleanRule, sameRule, ruleIsValid, nextDates, describeRule, toLunar, lunarAvailable
 } from './repeat.js';
 
-// ---------- DOM helpers ----------
-
 const $ = (selector, root = document) => root.querySelector(selector);
 const cls = (...names) => names.filter(Boolean).join(' ');
 
@@ -46,8 +44,6 @@ function icon(name) {
   t.innerHTML = ICONS[name];
   return t.content.firstChild;
 }
-
-// ---------- Elements and state ----------
 
 const els = {
   views: {
@@ -128,8 +124,6 @@ const client = window.supabase && config.supabaseUrl
   : null;
 sync.init(client);
 
-// ---------- Rendering ----------
-
 function holidayOptions() {
   const s = store.settings();
   return { us: s.showUs !== false, kr: s.showKr !== false, fetched: store.krHolidays() };
@@ -175,8 +169,6 @@ function render() {
   }
 }
 
-// Calendar
-
 function renderCalendar() {
   els.monthTitle.textContent = `${MONTHS[ui.month]} ${ui.year}`;
   const weeks = monthWeeks(ui.year, ui.month);
@@ -196,7 +188,6 @@ function renderCalendar() {
 function dayCell(day, items, cats, options) {
   const dots = [];
   for (const c of cats) {
-    if (dots.length === 4) break;
     const mine = items.filter((i) => i.categoryId === c.id);
     if (!mine.length) continue;
     dots.push(h('span', {
@@ -231,8 +222,6 @@ function refreshCell(key) {
   old.replaceWith(dayCell({ key, date, inMonth: date.getMonth() === ui.month },
     visibleItems(store.dayItems(key)), store.categories(), holidayOptions()));
 }
-
-// Selected day
 
 function renderDay() {
   els.dayTitle.textContent = dayTitle(ui.selected, ui.today);
@@ -301,8 +290,6 @@ function itemRow(item) {
       item.note ? icon('note') : null));
 }
 
-// Quick add
-
 function openAdd(categoryId) {
   if (ui.addingIn === categoryId) {
     const input = $('#add-input');
@@ -366,9 +353,6 @@ function addRow(c) {
   return row;
 }
 
-// Someday
-
-// Someday has no categories, so it shows even when there are none.
 function renderSomeday() {
   const items = store.somedayOn(ui.selected);
   updateSomedayCount(items);
@@ -402,7 +386,6 @@ function closeSomedayAdd(row) {
 }
 
 // Add without redrawing so the keyboard stays open for the next task.
-// Adding on a past day starts it that day. Adding on a future day starts it today.
 function somedayQuickAdd(title) {
   const addedOn = ui.selected < ui.today ? ui.selected : ui.today;
   const s = store.addSomeday(title, addedOn, { silent: true });
@@ -447,8 +430,6 @@ function somedayAddRow() {
   });
   return row;
 }
-
-// Categories
 
 function renderCategories() {
   const cats = store.categories();
@@ -545,8 +526,6 @@ function removeCategory(c) {
   showToast('Category deleted');
 }
 
-// Settings
-
 function renderSettings() {
   const s = store.settings();
   els.toggleUs.setAttribute('aria-checked', String(s.showUs !== false));
@@ -595,19 +574,15 @@ els.syncNow.addEventListener('click', () => {
   sync.syncNow();
 });
 
-// ---------- Drag and drop ----------
-
 function makeSortables() {
   const Sortable = window.Sortable;
   if (!Sortable) return;
   const common = { animation: 150, chosenClass: 'is-chosen', ghostClass: 'is-ghost-row' };
-  // Long press to drag on touch, and a tap on the checkbox never starts a drag.
   const rows = { ...common, delay: 200, delayOnTouchOnly: true, touchStartThreshold: 5, filter: '.check', preventOnFilter: false };
   if (ui.view === 'main') {
     els.groups.querySelectorAll('ul.tasks').forEach((ul) => {
       sortables.push(Sortable.create(ul, { ...rows, group: 'tasks', onEnd: onItemDrop }));
     });
-    // Its own group, so items can't move between Someday and the day's categories.
     sortables.push(Sortable.create(els.somedayList, { ...rows, group: 'someday', onEnd: onSomedayDrop }));
   } else if (ui.view === 'categories' && !els.catList.hidden) {
     sortables.push(Sortable.create(els.catList, {
@@ -642,12 +617,8 @@ function onSomedayDrop(evt) {
   setTimeout(() => store.reorderSomeday(ids), 0);
 }
 
-// ---------- Task sheet ----------
-
 function openSheet(item) {
   const someday = item.kind === 'someday';
-  // Someday tasks have no date. The selected day stands in for the hidden
-  // date and repeat controls and is never saved.
   if (someday) item = { ...item, date: ui.selected };
   const routine = item.kind === 'occ' ? store.getRoutine(item.routineId) : null;
   if (item.kind === 'occ' && !routine) return;
@@ -660,7 +631,6 @@ function openSheet(item) {
     endMode: routine && routine.endDate ? 'date' : 'never',
     endDate: routine && routine.endDate ? routine.endDate : addDays(item.date, 90),
     scope: null,
-    // Past days move to today. Today and later days move one day on.
     moveTarget: item.date < ui.today ? ui.today : addDays(item.date, 1)
   };
 
@@ -675,7 +645,6 @@ function openSheet(item) {
         h('span', { class: cls('chip-dot', needsOutline(c.color) && 'is-outlined') }),
         h('span', { text: c.name })))));
   $('[data-action="skip"]', els.form).hidden = !routine;
-  // Reset every time, so a normal task opened after a someday one shows everything.
   els.fCatCard.hidden = someday;
   els.repeatCard.hidden = someday;
   const moveBtn = $('[data-action="move"]', els.form);
@@ -724,7 +693,6 @@ function stepper(label, valueText, onMinus, onPlus, unit, { minusDisabled, plusD
     unit ? h('span', { class: 'unit', text: unit }) : null);
 }
 
-// The repeat card is redrawn on its own so typing in the title is never interrupted.
 function renderRepeat() {
   const form = readForm();
   const category = store.getCategory(form.categoryId);
@@ -806,7 +774,6 @@ function renderRepeat() {
       }
     }
 
-    // Ends
     const endsRow = h('div', { class: 'ends-row' },
       h('span', { class: 'label', text: 'Ends' }),
       segmented('Ends', [['never', 'Never'], ['date', 'On a date']], sheet.endMode, (mode) => {
@@ -823,7 +790,6 @@ function renderRepeat() {
       parts.push(h('div', { class: 'date-row' }, h('span', { class: 'field-label', text: 'Last day' }), end));
     }
 
-    // Summary and preview
     const rule = previewRule(form);
     const valid = ruleIsValid(rule);
     parts.push(h('div', { class: cls('repeat-summary', !valid && 'is-warning'), text: describeRule(rule) }));
@@ -845,8 +811,7 @@ function endDateValue(form) {
   return sheet.endMode === 'date' && sheet.endDate >= form.date ? sheet.endDate : null;
 }
 
-// The rule as it will be saved. Yearly repeats take their month and day
-// from the date when the repeat is new or starts on a different day.
+// The rule as it will be saved.
 function previewRule(form) {
   const rule = cleanRule(sheet.rule);
   if (rule.freq === 'yearly' && (sheet.ruleFresh || (sheet.item.kind === 'occ' && form.date !== sheet.item.origDate))) {
@@ -1036,8 +1001,6 @@ els.dialog.addEventListener('close', () => {
   showScope(null);
 });
 
-// ---------- Navigation ----------
-
 function selectDay(key) {
   ui.selected = key;
   ui.addingIn = null;
@@ -1134,8 +1097,6 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('online', () => {
   if (store.isOpen()) holidayFeed.refresh();
 });
-
-// ---------- Sign in ----------
 
 function setLoginMode(mode) {
   ui.loginMode = mode;
@@ -1242,8 +1203,6 @@ els.logout.addEventListener('click', async () => {
   signedOut({ keepData: false });
 });
 
-// ---------- Toast ----------
-
 let toastTimer = null;
 function showToast(text) {
   els.toast.textContent = text;
@@ -1251,8 +1210,6 @@ function showToast(text) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => els.toast.classList.remove('is-visible'), 2400);
 }
-
-// ---------- Start ----------
 
 store.subscribe(render);
 
@@ -1264,7 +1221,6 @@ function boot() {
 
   setLoginMode('signin');
   const lastUser = localStorage.getItem('todo.lastUser');
-  // Open saved data right away, even offline. The session is confirmed below.
   if (lastUser) enterApp(lastUser, localStorage.getItem('todo.lastEmail'));
   else showLogin();
 

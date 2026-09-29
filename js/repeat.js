@@ -1,16 +1,4 @@
-// Repeat rules. A routine has a rule, a start date and an optional end date.
-//
-// rule = {
-//   freq: 'daily' | 'weekly' | 'monthly' | 'yearly',
-//   interval: 1,                         every N days, weeks, months or years
-//   weekdays: [1, 3, 5],                 weekly, 0 = Sunday
-//   monthMode: 'date' | 'last' | 'weekday',
-//   monthDay: 31,                        monthly by date (short months use their last day)
-//   ordinal: 1..4 or -1, weekday: 0..6,  monthly by weekday, -1 = last
-//   calendar: 'solar' | 'lunar',         yearly
-//   month: 9, day: 21,                   yearly solar (Feb 29 uses Feb 28 in other years)
-//   lunarMonth: 8, lunarDay: 11          yearly lunar (a missing 30th uses the 29th)
-// }
+// Repeat rules for routines.
 
 import {
   fromKey, toKey, pad, addDays, daysIn, daysBetween,
@@ -18,8 +6,6 @@ import {
 } from './dates.js';
 
 const ORDINALS = { 1: 'first', 2: 'second', 3: 'third', 4: 'fourth', '-1': 'last' };
-
-// ---------- Lunar calendar ----------
 
 function lunarLib() {
   return globalThis.KoreanLunarCalendar || null;
@@ -40,8 +26,7 @@ export function toLunar(key) {
   return { year: l.year, month: l.month, day: l.day, leap: Boolean(l.intercalation) };
 }
 
-// Lunar date to a solar date key. Leap months repeat in the regular month,
-// and a 30th that a month lacks uses the 29th.
+// Lunar date to a solar date key.
 export function lunarToSolar(year, month, day) {
   const Lib = lunarLib();
   if (!Lib) return null;
@@ -71,8 +56,6 @@ function lunarDatesInYear(routine, year) {
   lunarCache.set(cacheKey, dates);
   return dates;
 }
-
-// ---------- Rules ----------
 
 function ordinalOf(date) {
   const n = Math.ceil(date.getDate() / 7);

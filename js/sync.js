@@ -1,8 +1,4 @@
 // Background sync with Supabase.
-// Push: send queued changes from this device.
-// Pull: fetch rows other devices changed since the last pull.
-// Runs after edits, when the app comes back to the screen, when the
-// connection returns, and every 30 seconds while the app is open.
 
 import * as store from './store.js';
 
@@ -83,8 +79,6 @@ function isNetworkError(err) {
   return !navigator.onLine || /fetch|network|load failed|timed out|offline/i.test(text);
 }
 
-// A failing table doesn't stop the others. Its changes stay in the outbox,
-// and the first error is thrown at the end so the status shows Sync issue.
 async function push() {
   const changes = store.pendingChanges();
   if (!changes.length) return;
@@ -104,7 +98,6 @@ async function push() {
   if (firstError) throw firstError;
 }
 
-// Like push, one failing table doesn't stop the rest from pulling.
 async function pull() {
   let changed = false;
   let firstError = null;
@@ -147,8 +140,6 @@ export async function syncNow() {
     const { data } = await client.auth.getSession();
     if (!data.session) throw new Error('Signed out');
     if (data.session.user.id !== store.userId()) throw new Error('Different account');
-    // Pull even when a push failed, so one broken table doesn't stop
-    // changes from other devices coming in.
     const pushError = await push().then(() => null, (err) => err);
     await pull();
     if (pushError) throw pushError;

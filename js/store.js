@@ -1,7 +1,4 @@
 // Offline-first data store.
-// Every change is saved on this device right away and queued in the outbox.
-// sync.js sends the outbox to Supabase and merges changes from other devices.
-// When the same record changed in two places, the most recent edit wins.
 
 import { addDays } from './dates.js';
 import { occursOn, cleanRule, anchorYearly } from './repeat.js';
@@ -44,8 +41,6 @@ function emptyDb(userId) {
     seeded: false
   };
 }
-
-// ---------- Opening and saving ----------
 
 export function open(userId) {
   storageKey = `todo.db.${userId}`;
@@ -112,8 +107,6 @@ function commit() {
   notify();
 }
 
-// Records are replaced, never edited in place, so a sync in progress keeps
-// the version it read.
 function put(table, record) {
   const next = { ...record, updatedAt: now() };
   db[table][next.id] = next;
@@ -121,8 +114,6 @@ function put(table, record) {
   if (localChangeHook) localChangeHook();
   return next;
 }
-
-// ---------- Sync support ----------
 
 export function pendingCount() {
   return db ? Object.keys(db.outbox).length : 0;
@@ -155,7 +146,7 @@ export function setCursor(table, value) {
   if (db) db.cursors[table] = value;
 }
 
-// Merge records from the server. A local edit that is newer is kept.
+// Merge records from the server, keeping newer local edits.
 export function applyRemote(table, rows) {
   if (!db) return false;
   let changed = false;
@@ -175,8 +166,7 @@ export function finishPull(changed) {
   if (changed) notify();
 }
 
-// Korean holidays fetched by holiday-feed.js. They are the same for every
-// account, so they stay on the device and are not synced.
+// Korean holidays fetched by holiday-feed.js.
 export function krYear(year) {
   return db && db.krYears[year] ? db.krYears[year] : null;
 }
@@ -205,8 +195,6 @@ export function seedIfEmpty() {
   if (!categories().length) addCategory('Personal', '#2E9E5B');
   else persist();
 }
-
-// ---------- Reading ----------
 
 export function categories() {
   if (!db) return [];
@@ -290,7 +278,6 @@ export function itemsBetween(from, to) {
     }
   }
 
-  // Occurrences moved into this range from a date outside it.
   for (const o of Object.values(db.occurrences)) {
     if (!alive(o) || !o.moveTo || o.moveTo < from || o.moveTo > to) continue;
     if (o.date >= from && o.date <= to) continue;
@@ -314,8 +301,6 @@ function nextSort(date, categoryId) {
   return dayItems(date).filter((i) => i.categoryId === categoryId)
     .reduce((max, i) => Math.max(max, i.sortOrder), -1) + 1;
 }
-
-// ---------- Categories ----------
 
 export function addCategory(name = 'New category', color) {
   const list = categories();
@@ -356,8 +341,6 @@ export function reorderCategories(ids) {
   commit();
 }
 
-// ---------- Tasks ----------
-
 export function addTask(categoryId, date, title, { silent = false } = {}) {
   const t = put('tasks', {
     id: newId(), categoryId, date, title, note: '', done: false,
@@ -383,10 +366,6 @@ export function deleteTask(id) {
   commit();
 }
 
-// ---------- Someday ----------
-
-// A someday task waits on every day from addedOn until it's checked off,
-// shows as done on doneOn, and is hidden after that.
 function somedayVisible(s, date) {
   return s.addedOn <= date && (!s.doneOn || s.doneOn >= date);
 }
@@ -395,8 +374,6 @@ function liveSomeday() {
   return Object.values(db.someday).filter(alive).sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-// Someday tasks have no category. Older records may still carry a
-// categoryId, which is ignored.
 export function somedayOn(date) {
   if (!db) return [];
   return liveSomeday()
@@ -426,8 +403,6 @@ export function updateSomeday(id, patch) {
   commit();
 }
 
-// A task is never visible after doneOn, so checking on any visible day
-// other than doneOn moves doneOn earlier, and checking on doneOn clears it.
 export function toggleSomeday(id, date) {
   const s = db.someday[id];
   if (!s) return;
@@ -441,8 +416,7 @@ export function deleteSomeday(id) {
   commit();
 }
 
-// visibleIds is the new order of the items shown on one day. Hidden items
-// keep their slots, and every live item is renumbered so orders never collide.
+// visibleIds is the new order of the items shown on one day.
 export function reorderSomeday(visibleIds) {
   const all = liveSomeday();
   const visible = new Set(visibleIds);
@@ -453,8 +427,6 @@ export function reorderSomeday(visibleIds) {
   });
   commit();
 }
-
-// ---------- Repeats ----------
 
 function setOccurrence(routineId, origDate, patch) {
   const id = `${routineId}:${origDate}`;
@@ -502,7 +474,7 @@ export function taskToRoutine(taskId, draft) {
   commit();
 }
 
-// Edit a repeat from one occurrence onward. Earlier days keep the old version.
+// Edit a repeat from one occurrence onward.
 export function changeFuture(routineId, origDate, draft) {
   const r = db.routines[routineId];
   if (!r) return;
@@ -536,8 +508,6 @@ export function endRoutineFrom(routineId, origDate) {
   commit();
 }
 
-// ---------- Ordering ----------
-
 // After a drag, save the new order. groups = [{ categoryId, items: [{ kind, id }] }]
 export function applyOrder(date, groups) {
   for (const { categoryId, items } of groups) {
@@ -558,8 +528,6 @@ export function applyOrder(date, groups) {
   }
   commit();
 }
-
-// ---------- Settings ----------
 
 export function updateSettings(patch) {
   put('settings', { ...settings(), ...patch });
