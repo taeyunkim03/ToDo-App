@@ -115,6 +115,9 @@ const ui = {
 
 let sheet = null;
 let sortables = [];
+// Row positions taken just before a checkbox redraw, so the rows can slide to their new places.
+let pendingMove = null;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 const config = window.TODO_CONFIG || {};
 const client = window.supabase && config.supabaseUrl
@@ -167,6 +170,8 @@ function render() {
     const el = document.querySelector(restore);
     if (el) el.focus({ preventScroll: true });
   }
+  if (pendingMove) slideRows(pendingMove);
+  pendingMove = null;
 }
 
 function renderCalendar() {
@@ -282,12 +287,42 @@ function itemRow(item) {
       role: 'checkbox',
       'aria-checked': String(item.done),
       'aria-label': item.title,
-      onclick: () => (someday ? store.toggleSomeday(item.id, ui.selected) : store.toggleItem(item))
+      onclick: (e) => {
+        rememberRows(e.currentTarget.closest('ul'));
+        if (someday) store.toggleSomeday(item.id, ui.selected);
+        else store.toggleItem(item);
+        // The store redraws right away. Clear anyway in case nothing redrew.
+        pendingMove = null;
+      }
     }, h('span', { class: 'box' }, icon('check'))),
     h('button', { type: 'button', class: 'title', onclick: () => openSheet(item) },
       h('span', { text: item.title }),
       item.repeat ? icon('repeat') : null,
       item.note ? icon('note') : null));
+}
+
+function rememberRows(list) {
+  const tops = {};
+  for (const row of list.querySelectorAll('.task')) tops[row.dataset.id] = row.getBoundingClientRect().top;
+  pendingMove = {
+    list: list.id ? `#${list.id}` : `ul.tasks[data-category-id="${list.dataset.categoryId}"]`,
+    tops
+  };
+}
+
+// Slide each row from where it was before the redraw to where it is now.
+function slideRows({ list, tops }) {
+  const el = $(list);
+  if (!el || reduceMotion.matches) return;
+  for (const row of el.querySelectorAll('.task')) {
+    const top = tops[row.dataset.id];
+    if (top == null) continue;
+    const dy = top - row.getBoundingClientRect().top;
+    if (dy) {
+      row.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }],
+        { duration: 250, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
+    }
+  }
 }
 
 function openAdd(categoryId) {
@@ -307,12 +342,14 @@ function closeAdd(row) {
 }
 
 // Add without redrawing so the keyboard stays open for the next task.
+// The new row goes above any checked rows.
 function quickAdd(c, title, row) {
   const task = store.addTask(c.id, ui.selected, title, { silent: true });
-  row.previousElementSibling.append(itemRow({
+  const list = row.previousElementSibling;
+  list.insertBefore(itemRow({
     kind: 'task', id: task.id, date: task.date, title: task.title, note: '', categoryId: c.id,
     done: false, sortOrder: task.sortOrder, repeat: false
-  }));
+  }), list.querySelector('.task.is-done'));
   refreshCell(ui.selected);
   updateSummary();
   renderSyncChip();
@@ -386,12 +423,13 @@ function closeSomedayAdd(row) {
 }
 
 // Add without redrawing so the keyboard stays open for the next task.
+// The new row goes above any checked rows.
 function somedayQuickAdd(title) {
   const addedOn = ui.selected < ui.today ? ui.selected : ui.today;
   const s = store.addSomeday(title, addedOn, { silent: true });
-  els.somedayList.append(itemRow({
+  els.somedayList.insertBefore(itemRow({
     kind: 'someday', id: s.id, title: s.title, note: '', done: false, sortOrder: s.sortOrder
-  }));
+  }), els.somedayList.querySelector('.task.is-done'));
   updateSomedayCount();
   renderSyncChip();
 }

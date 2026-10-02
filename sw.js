@@ -1,6 +1,6 @@
 // Offline support: app files come from the cache and are refreshed in the background.
 
-const CACHE = 'todo-v6';
+const CACHE = 'todo-v7';
 const SHELL = [
   './', 'index.html', 'styles.css', 'config.js', 'manifest.webmanifest',
   'js/app.js', 'js/store.js', 'js/holiday-feed.js', 'js/sync.js', 'js/repeat.js', 'js/holidays.js', 'js/dates.js', 'js/palette.js',

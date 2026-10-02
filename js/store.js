@@ -252,7 +252,9 @@ function occurrenceItem(r, origDate) {
   };
 }
 
-const itemSort = (a, b) => a.sortOrder - b.sortOrder
+// Unchecked first, then the saved order.
+const itemSort = (a, b) => a.done - b.done
+  || a.sortOrder - b.sortOrder
   || (a.kind === b.kind ? 0 : a.kind === 'occ' ? -1 : 1)
   || a.title.localeCompare(b.title);
 
@@ -381,7 +383,8 @@ export function somedayOn(date) {
     .map((s) => ({
       kind: 'someday', id: s.id, title: s.title, note: s.note || '',
       done: s.doneOn === date, sortOrder: s.sortOrder
-    }));
+    }))
+    .sort((a, b) => a.done - b.done || a.sortOrder - b.sortOrder);
 }
 
 export function addSomeday(title, addedOn, { silent = false } = {}) {
