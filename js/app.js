@@ -36,7 +36,8 @@ const ICONS = {
   check: '<svg viewBox="0 0 24 24" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   note: '<svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h10"/></svg>',
   repeat: '<svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>',
-  grip: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>'
+  grip: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>',
+  arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>'
 };
 
 function icon(name) {
@@ -69,6 +70,7 @@ const els = {
   dayTitle: $('#day-title'),
   daySummary: $('#day-summary'),
   dayHoliday: $('#day-holiday'),
+  moveUnfinished: $('#move-unfinished'),
   groups: $('#groups'),
   someday: $('#someday'),
   somedayCount: $('#someday-count'),
@@ -237,11 +239,13 @@ function renderDay() {
   updateSummary(items);
   const cats = store.categories();
   if (!cats.length) {
+    els.moveUnfinished.hidden = true;
     els.groups.replaceChildren(h('div', { class: 'empty' },
       h('p', { text: 'Add a category to start planning your days.' }),
       h('a', { class: 'solid-btn', href: '#categories', text: 'Add a category' })));
     return;
   }
+  updateMoveButton();
   els.groups.replaceChildren(...cats.map((c) => groupEl(c, items.filter((i) => i.categoryId === c.id))));
   if (ui.addingIn) {
     const input = $('#add-input');
@@ -252,6 +256,16 @@ function renderDay() {
 function updateSummary(items = visibleItems(store.dayItems(ui.selected))) {
   const done = items.filter((i) => i.done).length;
   els.daySummary.textContent = items.length ? `${done} of ${items.length} done` : 'Nothing planned';
+}
+
+function movableCount() {
+  return ui.selected < ui.today ? store.unfinishedCount(ui.selected, ui.today) : 0;
+}
+
+function updateMoveButton() {
+  const count = movableCount();
+  els.moveUnfinished.hidden = !count;
+  if (count) els.moveUnfinished.replaceChildren(h('span', {}, `Move ${count} unfinished to today`, icon('arrow')));
 }
 
 function groupStyle(c) {
@@ -352,6 +366,7 @@ function quickAdd(c, title, row) {
   }), list.querySelector('.task.is-done'));
   refreshCell(ui.selected);
   updateSummary();
+  updateMoveButton();
   renderSyncChip();
 }
 
@@ -1059,6 +1074,20 @@ function showMonth(offset) {
 els.prev.addEventListener('click', () => showMonth(-1));
 els.next.addEventListener('click', () => showMonth(1));
 els.todayBtn.addEventListener('click', () => selectDay(ui.today));
+
+els.moveUnfinished.addEventListener('click', () => {
+  const count = movableCount();
+  if (!count) {
+    render();
+    return;
+  }
+  if (!confirm(`Move ${count} unfinished ${count === 1 ? 'task' : 'tasks'} to today?`)) return;
+  const { moved, skipped } = store.moveUnfinished(ui.selected, ui.today);
+  selectDay(ui.today);
+  showToast(skipped
+    ? `Moved ${moved} to today. ${skipped === 1 ? '1 repeat is' : `${skipped} repeats are`} already on today.`
+    : `Moved ${moved} to today`);
+});
 
 els.grid.addEventListener('click', (e) => {
   const cell = e.target.closest('.cell');

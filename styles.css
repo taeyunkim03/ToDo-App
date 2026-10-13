@@ -238,6 +238,26 @@ svg { display: block; }
 }
 .day-summary { font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; }
 .day-holiday { margin: 2px 0 0; color: var(--red); font-size: 13px; font-weight: 600; }
+.move-unfinished {
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+}
+.move-unfinished span {
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: var(--field);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.move-unfinished svg { width: 14px; height: 14px; }
 
 .groups { display: flex; flex-direction: column; gap: 16px; margin-top: 12px; }
 @container (min-width: 620px) {

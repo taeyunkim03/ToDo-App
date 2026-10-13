@@ -458,6 +458,36 @@ export function toggleItem(item) {
   commit();
 }
 
+// Unchecked items on fromDate. Repeats that already fall on toDate stay put.
+function unfinished(fromDate, toDate) {
+  const move = [];
+  let skipped = 0;
+  for (const i of dayItems(fromDate)) {
+    if (i.done || !getCategory(i.categoryId)) continue;
+    if (i.kind === 'occ' && i.origDate !== toDate && occursOn(getRoutine(i.routineId), toDate)) skipped += 1;
+    else move.push(i);
+  }
+  return { move, skipped };
+}
+
+export function unfinishedCount(fromDate, toDate) {
+  return unfinished(fromDate, toDate).move.length;
+}
+
+export function moveUnfinished(fromDate, toDate) {
+  const { move, skipped } = unfinished(fromDate, toDate);
+  for (const i of move) {
+    if (i.kind === 'task') {
+      const t = db.tasks[i.id];
+      put('tasks', { ...t, date: toDate, sortOrder: nextSort(toDate, t.categoryId) });
+    } else {
+      setOccurrence(i.routineId, i.origDate, { moveTo: toDate });
+    }
+  }
+  commit();
+  return { moved: move.length, skipped };
+}
+
 function newRoutine({ categoryId, title, note, rule, startDate, endDate }) {
   const clean = cleanRule(rule);
   if (clean.freq === 'yearly' && !clean.month) Object.assign(clean, anchorYearly(startDate));
